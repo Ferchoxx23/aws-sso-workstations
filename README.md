@@ -3,6 +3,8 @@
 
 A standardized, secure way for each team member to start a personal **EC2 workstation** from their Mac terminal using **AWS SSO** and connect via **AWS Systems Manager Session Manager** (no inbound SSH).
 
+The Submissions team needs a standard AWS EC2 image and set of local tools to support activities that cannot be done on either their local MacBooks and should not or cannot be done on any of the on-prem clusters. Managing direct cost is a high priority that must be balanced against maintaining an efficient and pleasant work environment.
+
 ## Goals
 - **SSO-first**: Users authenticate with AWS IAM Identity Center (SSO) and receive short-lived credentials.
 - **Zero inbound**: Access via Session Manager. No SSH keys, no open ports.
@@ -10,6 +12,9 @@ A standardized, secure way for each team member to start a personal **EC2 workst
 - **Automated**: One-command scripts to create, connect to, and stop workstations.
 - **Cost-aware**: Easy stop/terminate & (later) idle-stop automation.
 - **Simple sync**: Trivial file sync between an EC2 directory and `s3://<bucket>/<prefix>/<username>/`.
+- **Infrastructure as code**: All infrastructure defined in code (AWS CDK Python).
+- **Easy machine images**: Simple construction of new machine images and VM definitions.
+- **Local sync**: User files stored in EC2 directory synchronized with corresponding MacBook directory.
 
 ## Architecture
 ```mermaid
@@ -113,9 +118,10 @@ cdk/
 - Security Group has **no inbound** rules (all outbound permitted).
 
 ## Future work (optional)
-- **Idle stop**: EventBridge rule + Lambda/SSM Automation to detect idle (no SSM sessions, CPU/Network low, no batch jobs) and stop.
+- **Idle stop**: EventBridge rule + Lambda/SSM Automation to detect idle (no SSM sessions, CPU/Network low, no batch jobs) and stop. Note: A tmux session containing processes like bash, less, and vim should not be sufficient for the EC2 instance to be considered non-idle.
 - **Private subnets + endpoints** for SSM, S3, (Logs) to remove public IPs entirely.
 - **Session logs** to CloudWatch/S3.
+- **MacBook sync**: Direct synchronization between MacBook and EC2 workspace directories (beyond S3 sync).
 
 ## Frequently Asked Questions
 **Q: Why not just SSH?**  
