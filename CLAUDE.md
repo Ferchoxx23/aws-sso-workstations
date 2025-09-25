@@ -49,8 +49,8 @@ aws sso login --profile <sso-profile>
 ```bash
 # Deploy baseline infrastructure
 cd cdk/
-pip install -r requirements.txt
-cdk deploy --profile <sso-profile>
+uv sync
+uv run cdk deploy --profile <sso-profile>
 ```
 
 ## File Structure
@@ -78,6 +78,8 @@ aws-config-git/      # AWS CLI configuration management
 - Follow existing script patterns for argument parsing and error handling
 - Use AWS CLI with SSO profiles consistently
 - Tag all AWS resources with Owner and Project for ABAC compliance
+- Use ruff for Python code linting and formatting
+- Use uv for Python dependency management
 
 ## Security Notes
 

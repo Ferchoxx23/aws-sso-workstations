@@ -106,7 +106,7 @@ infra/
     permission-set-abac-explicit-deny.json
 cdk/
   app.py
-  requirements.txt
+  pyproject.toml
 ```
 
 ## Implementation Details
