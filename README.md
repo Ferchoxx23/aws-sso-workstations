@@ -19,16 +19,12 @@ The Submissions team needs a standard AWS EC2 image and set of local tools to su
 ## Architecture
 ```mermaid
 flowchart LR
-  A[MacBook
-AWS CLI + SSO] -->|aws sso login| B[IAM Identity Center
-(Permission Set with ABAC)]
-  B -->|STS creds| C[AWS APIs
-(EC2, SSM)]
+  A["MacBook<br/>AWS CLI + SSO"] -->|aws sso login| B["IAM Identity Center<br/>(Permission Set with ABAC)"]
+  B -->|STS creds| C["AWS APIs<br/>(EC2, SSM)"]
   C -->|Control plane| D[Session Manager]
-  D <-->|Stream shell
-Port 443 outbound only| E[(EC2 Workstation)]
+  D <-->|"Stream shell<br/>Port 443 outbound only"| E[(EC2 Workstation)]
   subgraph VPC
-  E -.->|Optional logs| G[(CloudWatch Logs/S3)]
+  E -.->|Optional logs| G[("CloudWatch Logs/S3")]
   end
 ```
 
