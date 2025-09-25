@@ -1,0 +1,18 @@
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyIfNotOwner",
+      "Effect": "Deny",
+      "Action": ["ec2:StartInstances","ec2:StopInstances","ec2:RebootInstances","ec2:TerminateInstances","ssm:StartSession","ssm:ResumeSession"],
+      "Resource": ["arn:aws:ec2:*:*:instance/*","arn:aws:ssm:*:*:session/*"],
+      "Condition": {
+        "ForAllValues:StringNotEquals": {
+          "ec2:ResourceTag/Owner": "${aws:PrincipalTag/username}",
+          "ssm:resourceTag/Owner": "${aws:PrincipalTag/username}"
+        }
+      }
+    }
+  ]
+}

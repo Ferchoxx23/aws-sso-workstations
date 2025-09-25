@@ -1,0 +1,64 @@
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DescribeReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances","ec2:DescribeTags","ec2:DescribeInstanceTypes",
+        "ec2:DescribeImages","ec2:DescribeSubnets","ec2:DescribeVpcs","ec2:DescribeSecurityGroups"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowPassSpecificInstanceRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::*:role/EC2-SSM-Role",
+      "Condition": {"StringEquals": {"iam:PassedToService": "ec2.amazonaws.com"}}
+    },
+    {
+      "Sid": "AllowRunInstancesWithOwnerAndIMDSv2",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": [
+        "arn:aws:ec2:*:*:instance/*","arn:aws:ec2:*:*:volume/*",
+        "arn:aws:ec2:*:*:network-interface/*","arn:aws:ec2:*:*:security-group/*",
+        "arn:aws:ec2:*:*:key-pair/*","arn:aws:ec2:*:*:subnet/*","arn:aws:ec2:*:*:image/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Owner": "${aws:PrincipalTag/username}",
+          "ec2:MetadataHttpTokens": "required"
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsDuringRunInstances",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": ["arn:aws:ec2:*:*:instance/*","arn:aws:ec2:*:*:volume/*"],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Owner": "${aws:PrincipalTag/username}",
+          "ec2:CreateAction": "RunInstances"
+        }
+      }
+    },
+    {
+      "Sid": "LifecycleOnOwnedInstances",
+      "Effect": "Allow",
+      "Action": ["ec2:StartInstances","ec2:StopInstances","ec2:RebootInstances","ec2:TerminateInstances","ec2:CreateTags","ec2:DeleteTags"],
+      "Resource": "arn:aws:ec2:*:*:instance/*",
+      "Condition": {"StringEquals": {"ec2:ResourceTag/Owner": "${aws:PrincipalTag/username}"}}
+    },
+    {
+      "Sid": "SSMSessionToOwnedInstances",
+      "Effect": "Allow",
+      "Action": ["ssm:StartSession","ssm:ResumeSession","ssm:TerminateSession","ssm:DescribeSessions","ssm:GetConnectionStatus"],
+      "Resource": ["arn:aws:ec2:*:*:instance/*","arn:aws:ssm:*:*:session/*","arn:aws:ssm:*:*:document/SSM-SessionManagerRunShell"],
+      "Condition": {"StringEquals": {"ssm:resourceTag/Owner": "${aws:PrincipalTag/username}"}}
+    }
+  ]
+}

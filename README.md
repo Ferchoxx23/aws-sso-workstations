@@ -1,52 +1,95 @@
+
 # Submissions AWS Shell
 
+A standardized, secure way for each team member to start a personal **EC2 workstation** from their Mac terminal using **AWS SSO** and connect via **AWS Systems Manager Session Manager** (no inbound SSH).
+
 ## Goals
+- **SSO-first**: Users authenticate with AWS IAM Identity Center (SSO) and receive short-lived credentials.
+- **Zero inbound**: Access via Session Manager. No SSH keys, no open ports.
+- **ABAC**: Attribute-based access control using a `username` principal tag; instances are tagged `Owner=<username>`.
+- **Automated**: One-command scripts to create, connect to, and stop workstations.
+- **Cost-aware**: Easy stop/terminate & (later) idle-stop automation.
+- **Simple sync**: Trivial file sync between an EC2 directory and `s3://<bucket>/<prefix>/<username>/`.
 
-The Submissions team needs a standard AWS EC2 image and set of local tools to support activities that cannot be done on either their local MacBooks and should not or cannot be done on any of the on-prem clusters.
-
-As is typical, managing direct cost is a high priority that must be balanced against maintaining an efficient and please work environment.
-
-This project defines these primary goals:
-
-- Everything must be compatible with SSO.
-- All custom imperative code should be either Python or Bash.
-- Infrastructure should be defined in code.
-- It should be easy to construct new machine images and VM definitions.
-- Each user gets their own private EC2 instance.
-- All user files that are not stored in S3 should be stored in a directory on the EC2 instance that is synchronized with a corresponding directory on the MacBook. The synchronization should be trivial for the user.
-- If the EC2 instance is "idle" (no user connections and no jobs running), then it should automatically stop, hybernate, or even possibly terminate. A tmux session containing processes like bash, less, and vim, sholud not be sufficient for the EC2 instance to be considered non-idle.
-
-## From Copilot
-
-### Diagram
-
-```text
-+-----------------+         +----------------------------+         +-----------------------+
-|  MacBook (CLI)  |  SSO    |   AWS IAM Identity Center  |  STS    |  AWS APIs (EC2, SSM)  |
-|  aws sso login  +-------->+  (Permission Set + ABAC)   +-------->+  (authZ + auditing)   |
-+--------+--------+         +--------------+-------------+         +-----+-----------------+
-         |                                 ^                             |
-         | aws ec2 run-instances           | evaluates tag-based         | SSM control plane
-         | aws ssm start-session           | policies                    | connection
-         v                                 |                             v
-+--------+---------------------------------------------------------------+---------------+
-|                                   VPC                                  |               |
-|  Option 1 (simpler): Public subnet, no inbound rules; IMDSv2 required  |               |
-|  Option 2 (hardened): Private subnet + VPC endpoints (SSM/EC2msg/      |               |
-|   SSMmsg/S3) – no NAT, no public IP                                    |               |
-|                                                                        |               |
-|     +---------------------+                                            |               |
-|     | EC2 “workstation”   | <-------------------------- SSM Agent -----+               |
-|     | - Instance profile  |     (outbound only to SSM endpoints)                       |
-|     |   with SSM perms    |                                                         +--+--+
-|     | - Tag: Owner=<user> |                                                         |Logs |
-|     | - No SSH open       |-------- Session logs (optional) ----------------------->|S3/  |
-|     +---------------------+                                                         |CWL  |
-+-------------------------------------------------------------------------------------+-----+
+## Architecture
+```mermaid
+flowchart LR
+  A[MacBook
+AWS CLI + SSO] -->|aws sso login| B[IAM Identity Center
+(Permission Set with ABAC)]
+  B -->|STS creds| C[AWS APIs
+(EC2, SSM)]
+  C -->|Control plane| D[Session Manager]
+  D <-->|Stream shell
+Port 443 outbound only| E[(EC2 Workstation)]
+  subgraph VPC
+  E -.->|Optional logs| G[(CloudWatch Logs/S3)]
+  end
 ```
 
-### Project Layout
+**Notes**
+- Public subnet is acceptable **without** any inbound rules because SSM is outbound-only; later you can place instances in **private subnets with VPC interface endpoints** for `ssm`, `ec2messages`, `ssmmessages` (and optionally `s3`, `logs`).
+- Instances require **IMDSv2** and an instance profile with **`AmazonSSMManagedInstanceCore`** policy attached.
 
+## Quickstart
+1. **Login with SSO** (once per shell):
+   ```bash
+   aws sso login --profile <sso-profile>
+   ```
+2. **One-time bootstrap** (creates instance role/profile for SSM):
+   ```bash
+   ./infra/scripts/bootstrap-iam-for-ssm.sh <sso-profile> <region>
+   ```
+3. **Create your workstation**:
+   ```bash
+   ./infra/scripts/create-workstation.sh      --profile <sso-profile> --region <region>      --username <your-username> --project bio-ws      --instance-type t3.small --arch x86_64 --volume-gb 50
+   ```
+4. **Start a shell**:
+   ```bash
+   ./infra/scripts/start-session.sh <sso-profile> <region> <instance-id>
+   ```
+5. **Stop it when done**:
+   ```bash
+   ./infra/scripts/stop-workstation.sh <sso-profile> <region> <your-username> [project]
+   ```
+
+## S3 Sync (per-user workspace)
+We suggest a dedicated directory on EC2, e.g., `/home/ec2-user/workspace`, synced to `s3://<bucket>/<prefix>/<username>/`.
+
+- One-way **upload** from EC2 → S3 during/after work:
+  ```bash
+  aws s3 sync /home/ec2-user/workspace s3://<bucket>/<prefix>/<username>/ --delete
+  ```
+- One-way **download** from S3 → EC2 at start:
+  ```bash
+  aws s3 sync s3://<bucket>/<prefix>/<username>/ /home/ec2-user/workspace
+  ```
+- For convenience, use `infra/scripts/s3-sync.sh` (see below). Avoid FUSE mounts (e.g., s3fs) for POSIX-heavy or latency-sensitive workloads; S3 is object storage, not a POSIX filesystem.
+
+### Bucket policy (optional, ABAC with username)
+Example that lets signed-in principals with a `username` principal tag read/write **only** their own prefix. Replace `<bucket>` and `<prefix>`.
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowUserPrefixRW",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": ["s3:GetObject","s3:PutObject","s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::<bucket>/<prefix/${aws:PrincipalTag/username}>/*",
+      "Condition": {"StringLike": {"aws:PrincipalTag/username": "*"}}
+    }
+  ]
+}
+```
+> Ensure IAM Identity Center maps your directory attribute to the **principal tag** `username` (Settings → Attribute mappings). All users then get access only to `/<prefix>/<username>/` by default.
+
+## Work From Home (WFH) & Security Groups
+- **Default**: No inbound rules required. Session Manager uses **outbound HTTPS (443)** to AWS endpoints.
+- **If SSH is ever required**: Prefer **EC2 Instance Connect Endpoint** or **AWS Client VPN (SAML)** over a public port 22. Keep this out-of-scope initially.
+
+## Repository Layout
 ```
 infra/
   scripts/
@@ -54,14 +97,32 @@ infra/
     create-workstation.sh
     start-session.sh
     stop-workstation.sh
+    s3-sync.sh
   policies/
     permission-set-abac.json
     permission-set-abac-explicit-deny.json
+cdk/
+  app.py
+  requirements.txt
 ```
 
-## Questions
+## Implementation Details
+- Instances are tagged `Owner=<username>`, `Project=<project>`, `Name=<project>-<username>`.
+- ABAC permission set allows run/start/stop/terminate/SSM **only** when `Owner` matches `${aws:PrincipalTag/username}`.
+- IMDSv2 is **required** at launch.
+- Security Group has **no inbound** rules (all outbound permitted).
 
-- Which infrastructure as code technology is the right fit?
-- Implications of work from home with regard to configuring the security group for our VPC
+## Future work (optional)
+- **Idle stop**: EventBridge rule + Lambda/SSM Automation to detect idle (no SSM sessions, CPU/Network low, no batch jobs) and stop.
+- **Private subnets + endpoints** for SSM, S3, (Logs) to remove public IPs entirely.
+- **Session logs** to CloudWatch/S3.
 
+## Frequently Asked Questions
+**Q: Why not just SSH?**  
+A: SSM removes inbound exposure, centralizes audit, and avoids key management.
 
+**Q: Why not s3fs?**  
+A: S3 is object storage; POSIX semantics are partial and latency can bite. `aws s3 sync` is predictable and robust for content-based workflows.
+
+**Q: Which IaC should we use?**  
+A: Since we are AWS-only and Python-strong, use **AWS CDK (Python)** to define shared infra (SSM logging, VPC endpoints, buckets, KMS). Keep per-user workstation lifecycle as CLI scripts.
