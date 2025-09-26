@@ -38,8 +38,21 @@ flowchart LR
 
 ### 1. Prerequisites
 - AWS CLI installed with SSO configured
+- **Session Manager plugin** for AWS CLI (required to connect to workstations)
 - Node.js and npm installed (for AWS CDK)
 - Python 3.13+ and uv installed (for CDK Python dependencies)
+
+**Install Session Manager plugin:**
+```bash
+# Option 1: Using Homebrew (recommended)
+brew install awscli                    # If not already installed
+brew install --cask session-manager-plugin
+
+# Option 2: Manual installation (requires admin privileges)
+curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip" -o "sessionmanager-bundle.zip"
+unzip sessionmanager-bundle.zip
+sudo ./sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin
+```
 
 ### 2. Configure AWS SSO Profiles
 Add both developer and administrator profiles to your AWS config:
@@ -118,6 +131,12 @@ aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-e
 ## Troubleshooting
 
 ### Common Issues
+
+**"SessionManagerPlugin is not found"**
+Install the Session Manager plugin:
+```bash
+brew install --cask session-manager-plugin
+```
 
 **"No default VPC found"**
 ```bash
