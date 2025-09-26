@@ -34,27 +34,124 @@ flowchart LR
 - **SSM Agent** (pre-installed on Amazon Linux 2023) establishes outbound HTTPS connection to Session Manager service.
 - **S3 workspace sync** (not shown) provides per-user file synchronization via `s3://<bucket>/<prefix>/<username>/`.
 
-## Quickstart
-1. **Login with SSO** (once per shell):
-   ```bash
-   aws sso login --profile <sso-profile>
-   ```
-2. **One-time bootstrap** (creates instance role/profile for SSM):
-   ```bash
-   ./infra/scripts/bootstrap-iam-for-ssm.sh <sso-profile> <region>
-   ```
-3. **Create your workstation**:
-   ```bash
-   ./infra/scripts/create-workstation.sh      --profile <sso-profile> --region <region>      --username <your-username> --project bio-ws      --instance-type t3.small --arch x86_64 --volume-gb 50
-   ```
-4. **Start a shell**:
-   ```bash
-   ./infra/scripts/start-session.sh <sso-profile> <region> <instance-id>
-   ```
-5. **Stop it when done**:
-   ```bash
-   ./infra/scripts/stop-workstation.sh <sso-profile> <region> <your-username> [project]
-   ```
+## Initial Setup (One-time)
+
+### 1. Prerequisites
+- AWS CLI installed with SSO configured
+- Node.js and npm installed (for AWS CDK)
+- Python 3.13+ and uv installed (for CDK Python dependencies)
+
+### 2. Configure AWS SSO Profiles
+Add both developer and administrator profiles to your AWS config:
+
+```ini
+[sso-session bcm-sso]
+sso_start_url = https://d-9a6707c126.awsapps.com/start
+sso_region = us-east-2
+sso_registration_scopes = sso:account:access
+
+[profile sub-dev-dev]
+sso_session = bcm-sso
+sso_account_id = 058264484340
+sso_role_name = Submissions-Dev-Developer
+region = us-east-1
+
+[profile sub-dev-admin]
+sso_session = bcm-sso
+sso_account_id = 058264484340
+sso_role_name = AWSAdministratorAccess
+region = us-east-1
+```
+
+### 3. Bootstrap Infrastructure
+Run these commands in order:
+
+```bash
+# 1. Install AWS CDK CLI globally
+npm install -g aws-cdk
+
+# 2. Login with admin profile for bootstrapping
+aws sso login --profile sub-dev-admin
+
+# 3. Create default VPC if none exists
+aws ec2 create-default-vpc --profile sub-dev-admin
+
+# 4. Bootstrap IAM resources for SSM
+./infra/scripts/bootstrap-iam-for-ssm.sh sub-dev-admin us-east-1
+
+# 5. Bootstrap CDK toolkit (optional, for future CDK deployments)
+cd cdk
+uv sync
+uv run cdk bootstrap --profile sub-dev-admin
+```
+
+## Daily Usage
+
+### 1. Login with Developer Profile
+```bash
+aws sso login --profile sub-dev-dev
+```
+
+### 2. Create Your Workstation
+```bash
+./infra/scripts/create-workstation.sh \
+  --profile sub-dev-dev \
+  --region us-east-1 \
+  --username <your-username> \
+  --project <project-name> \
+  --instance-type t3.small \
+  --arch x86_64 \
+  --volume-gb 50 \
+  --subnet-id subnet-042e2fa6a0489e19b  # Use us-east-1a for better instance type support
+```
+
+### 3. Connect to Your Workstation
+```bash
+aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-east-1
+```
+
+### 4. Stop When Done
+```bash
+./infra/scripts/stop-workstation.sh sub-dev-dev us-east-1 <your-username> [project]
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**"No default VPC found"**
+```bash
+aws ec2 create-default-vpc --profile sub-dev-admin
+```
+
+**"Unsupported instance type in Availability Zone"**
+- Specify a different subnet with `--subnet-id` parameter
+- Try us-east-1a subnet: `subnet-042e2fa6a0489e19b`
+- Use t3.small instead of t3.micro/t3.nano for better AZ support
+
+**"Permission denied" when running scripts**
+```bash
+# Use bash explicitly
+bash ./infra/scripts/create-workstation.sh [options]
+```
+
+**"CDK deployment fails with permission boundaries"**
+- Use the admin profile for initial bootstrap: `--profile sub-dev-admin`
+- The system works without CDK deployment - IAM resources are created by bootstrap script
+
+**"Duplicate security group rule"**
+- This is expected on subsequent runs - the script will continue successfully
+- Security groups are reused between workstation creations
+
+### Available Subnets in us-east-1
+```
+us-east-1a: subnet-042e2fa6a0489e19b (recommended)
+us-east-1b: subnet-0ad98f118ac401462
+us-east-1c: subnet-05b62d63755840714
+us-east-1d: subnet-019592a79b5036329
+us-east-1e: subnet-07338f9d6c34cf90f
+us-east-1f: subnet-00b31d438ae1f2a53
+```
 
 ## S3 Sync (per-user workspace)
 We suggest a dedicated directory on EC2, e.g., `/home/ec2-user/workspace`, synced to `s3://<bucket>/<prefix>/<username>/`.
