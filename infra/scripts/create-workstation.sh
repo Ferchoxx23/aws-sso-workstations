@@ -62,7 +62,7 @@ fi
 
 NAME_TAG="${PROJECT}-${USERNAME}"
 
-INSTANCE_ID=$(aws ec2 run-instances   --image-id "$AMI_ID"   --instance-type "$INSTANCE_TYPE"   --iam-instance-profile Name="$INSTANCE_PROFILE"   --subnet-id "$SUBNET_ID"   --security-group-ids "$SG_ID"   --associate-public-ip-address   --block-device-mappings "[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":$VOLUME_GB,"VolumeType":"gp3","DeleteOnTermination":true}}]"   --metadata-options "HttpTokens=required,HttpEndpoint=enabled"   --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME_TAG},{Key=Owner,Value=$USERNAME},{Key=Project,Value=$PROJECT}]"                         "ResourceType=volume,Tags=[{Key=Owner,Value=$USERNAME},{Key=Project,Value=$PROJECT}]"   --query 'Instances[0].InstanceId' --output text --profile "$PROFILE" --region "$REGION")
+INSTANCE_ID=$(aws ec2 run-instances   --image-id "$AMI_ID"   --instance-type "$INSTANCE_TYPE"   --iam-instance-profile Name="$INSTANCE_PROFILE"   --subnet-id "$SUBNET_ID"   --security-group-ids "$SG_ID"   --associate-public-ip-address   --block-device-mappings "[{\"DeviceName\":\"/dev/xvda\",\"Ebs\":{\"VolumeSize\":$VOLUME_GB,\"VolumeType\":\"gp3\",\"DeleteOnTermination\":true}}]"   --metadata-options "HttpTokens=required,HttpEndpoint=enabled"   --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME_TAG},{Key=Owner,Value=$USERNAME},{Key=Project,Value=$PROJECT}]"                         "ResourceType=volume,Tags=[{Key=Owner,Value=$USERNAME},{Key=Project,Value=$PROJECT}]"   --query 'Instances[0].InstanceId' --output text --profile "$PROFILE" --region "$REGION")
 
 echo "Launched: $INSTANCE_ID"
 aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --profile "$PROFILE" --region "$REGION"
