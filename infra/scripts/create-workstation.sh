@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 set -euo pipefail
 INSTANCE_TYPE="t3.small"

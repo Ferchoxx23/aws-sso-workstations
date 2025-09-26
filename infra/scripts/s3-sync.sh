@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 # Helper for bi-directional sync with S3 user prefix
 set -euo pipefail

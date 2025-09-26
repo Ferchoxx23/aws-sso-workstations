@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 # Creates an IAM role & instance profile for EC2 to use SSM.
 set -euo pipefail

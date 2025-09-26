@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 set -euo pipefail
 PROFILE="${1:?profile}"; REGION="${2:?region}"; USERNAME="${3:?username}"; PROJECT="${4:-}"
