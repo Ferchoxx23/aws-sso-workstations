@@ -1,1 +1,5 @@
 /aws-config-git
+
+# CDK generated files
+cdk/cdk.out/
+cdk/cdk.context.json
