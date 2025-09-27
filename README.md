@@ -137,16 +137,16 @@ Create standardized AMIs with pre-installed development tools using EC2 Image Bu
 # Create Image Builder pipeline and start first build
 ./infra/image-builder/scripts/create-ami.sh \
   --subnet-id subnet-042e2fa6a0489e19b \
-  --security-group sg-0123456789abcdef0 \
-  --profile sub-dev-dev \
+  --security-group sg-060f1c9f0d0b54238 \
+  --profile sub-dev-admin \
   --start-build
 
 # Monitor build progress (builds take ~20-30 minutes)
-aws imagebuilder list-image-builds --profile sub-dev-dev --region us-east-1 \
+aws imagebuilder list-image-builds --profile sub-dev-admin --region us-east-1 \
   --query 'imageBuildVersionList[0].{Status:state.status,Reason:state.reason,Progress:state.progress}'
 
 # List completed AMIs
-aws ec2 describe-images --owners self --profile sub-dev-dev --region us-east-1 \
+aws ec2 describe-images --owners self --profile sub-dev-admin --region us-east-1 \
   --filters 'Name=name,Values=AL2023-Workstation-*' \
   --query 'Images[].{Name:Name,ImageId:ImageId,CreationDate:CreationDate}' \
   --output table
@@ -157,7 +157,7 @@ Once built, update your workstation creation to use the custom AMI:
 
 ```bash
 # Find your latest custom AMI
-CUSTOM_AMI=$(aws ec2 describe-images --owners self --profile sub-dev-dev --region us-east-1 \
+CUSTOM_AMI=$(aws ec2 describe-images --owners self --profile sub-dev-admin --region us-east-1 \
   --filters 'Name=name,Values=AL2023-Workstation-*' \
   --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
 

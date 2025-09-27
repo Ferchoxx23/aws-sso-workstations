@@ -224,6 +224,15 @@ else
 fi
 echo "Recipe ARN: ${RECIPE_ARN}"
 
+# Validate security group exists
+echo "==> Validating security group..."
+if ! ${AWS} ec2 describe-security-groups --group-ids "${SG_ID}" >/dev/null 2>&1; then
+    echo "Error: Security group ${SG_ID} not found or invalid" >&2
+    echo "Available security groups:" >&2
+    ${AWS} ec2 describe-security-groups --query 'SecurityGroups[].{GroupId:GroupId,GroupName:GroupName,VpcId:VpcId}' --output table >&2
+    exit 1
+fi
+
 # Create infrastructure configuration
 echo "==> Creating infrastructure configuration..."
 INFRA_ARN="$(${AWS} imagebuilder list-infrastructure-configurations \
@@ -253,7 +262,7 @@ if [[ -z "${DIST_ARN}" || "${DIST_ARN}" == "None" ]]; then
     DIST_ARN="$(${AWS} imagebuilder create-distribution-configuration \
         --name "${DIST_NAME}" \
         --description "Distribution configuration for workstation AMIs" \
-        --distributions "[{\"region\":\"${REGION}\",\"amiDistributionConfiguration\":{\"name\":\"${AMI_NAME_PATTERN}\",\"description\":\"Custom Amazon Linux 2023 workstation AMI\",\"launchPermission\":{\"userIds\":[]}}}]" \
+        --distributions "[{\"region\":\"${REGION}\",\"amiDistributionConfiguration\":{\"name\":\"${AMI_NAME_PATTERN}\",\"description\":\"Custom Amazon Linux 2023 workstation AMI\"}}]" \
         --query 'distributionConfigurationArn' --output text)"
     echo "Created distribution config: ${DIST_NAME}"
 else
