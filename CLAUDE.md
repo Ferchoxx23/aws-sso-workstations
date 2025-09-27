@@ -97,11 +97,13 @@ uv run cdk deploy ImageBuilder --profile sub-dev-admin --require-approval never
 ## File Structure
 
 ```
+shared/
+  image-builder/     # Shared Image Builder resources
+    components/      # AWSTOE component definitions
 infra/
   scripts/           # Shell scripts for workstation lifecycle
   policies/          # IAM permission set policies for ABAC
-  image-builder/     # EC2 Image Builder automation
-    components/      # AWSTOE component definitions
+  image-builder/     # EC2 Image Builder CLI automation
     scripts/         # AMI build automation scripts
 cdk/                 # AWS CDK Python infrastructure code
 aws-config-git/      # AWS CLI configuration management

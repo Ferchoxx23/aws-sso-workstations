@@ -24,7 +24,7 @@ AWS="aws --region ${REGION} --profile ${PROFILE}"
 
 # Get script directory for component file
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
-COMP_FILE="${SCRIPT_DIR}/../components/workstation-dev-tools.yml"
+COMP_FILE="${SCRIPT_DIR}/../../../shared/image-builder/components/workstation-dev-tools.yml"
 
 # Usage function
 usage() {

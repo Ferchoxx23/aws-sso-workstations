@@ -264,6 +264,10 @@ Example that lets signed-in principals with a `username` principal tag read/writ
 
 ## Repository Layout
 ```
+shared/
+  image-builder/
+    components/
+      workstation-dev-tools.yml
 infra/
   scripts/
     bootstrap-iam-for-ssm.sh
@@ -272,8 +276,6 @@ infra/
     stop-workstation.sh
     s3-sync.sh
   image-builder/
-    components/
-      workstation-dev-tools.yml
     scripts/
       create-ami.sh
   policies/

@@ -164,7 +164,7 @@ class ImageBuilderStack(Stack):
         # Get the component file path relative to this CDK directory
         cdk_dir = pathlib.Path(__file__).parent
         component_file = (
-            cdk_dir.parent / "infra" / "image-builder" / "components" / "workstation-dev-tools.yml"
+            cdk_dir.parent / "shared" / "image-builder" / "components" / "workstation-dev-tools.yml"
         )
 
         if not component_file.exists():
