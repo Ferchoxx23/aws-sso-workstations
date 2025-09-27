@@ -1,0 +1,65 @@
+name: WorkstationDevToolsV2
+description: Install essential development tools on Amazon Linux 2023 (fixed version)
+schemaVersion: 1.0
+phases:
+  - name: build
+    steps:
+      - name: UpdateOS
+        action: ExecuteBash
+        inputs:
+          commands:
+            - set -euo pipefail
+            - dnf -y update
+      - name: InstallCoreTools
+        action: ExecuteBash
+        inputs:
+          commands:
+            - dnf -y install tmux git wget curl unzip
+            - dnf -y install emacs-nox || dnf -y install emacs
+      - name: InstallNode20
+        action: ExecuteBash
+        inputs:
+          commands:
+            - dnf -y install nodejs20 nodejs20-npm
+            - alternatives --set node /usr/bin/node-20 || true
+            - alternatives --set npm  /usr/bin/npm-20  || true
+      - name: InstallUv
+        action: ExecuteBash
+        inputs:
+          commands:
+            - curl -LsSf https://astral.sh/uv/install.sh | sh
+            - export PATH="/root/.local/bin:$PATH"
+            - cp /root/.local/bin/uv /usr/local/bin/uv || true
+            - chmod +x /usr/local/bin/uv || true
+      - name: InstallAwsCli
+        action: ExecuteBash
+        inputs:
+          commands:
+            - cd /tmp
+            - curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+            - unzip awscliv2.zip
+            - ./aws/install --update
+            - rm -rf awscliv2.zip aws/
+      - name: InstallSessionManagerPlugin
+        action: ExecuteBash
+        inputs:
+          commands:
+            - cd /tmp
+            - curl https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm -o session-manager-plugin.rpm
+            - dnf install -y session-manager-plugin.rpm
+            - rm -f session-manager-plugin.rpm
+  - name: test
+    steps:
+      - name: VerifyVersions
+        action: ExecuteBash
+        inputs:
+          commands:
+            - set -e
+            - tmux -V
+            - git --version
+            - emacs --version | head -n1
+            - node --version
+            - npm --version
+            - /usr/local/bin/uv --version || echo "uv not found in /usr/local/bin"
+            - aws --version
+            - session-manager-plugin --version

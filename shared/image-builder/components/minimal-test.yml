@@ -1,0 +1,24 @@
+name: MinimalTest
+description: Minimal test component to verify Image Builder setup
+schemaVersion: 1.0
+phases:
+  - name: build
+    steps:
+      - name: SimpleTest
+        action: ExecuteBash
+        inputs:
+          commands:
+            - echo "Starting minimal test"
+            - whoami
+            - pwd
+            - ls -la /
+            - echo "Test completed successfully"
+  - name: test
+    steps:
+      - name: VerifyBasics
+        action: ExecuteBash
+        inputs:
+          commands:
+            - echo "Running basic verification"
+            - uname -a
+            - echo "Verification completed"

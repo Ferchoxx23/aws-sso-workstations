@@ -10,6 +10,7 @@ PROJECT=""
 USERNAME=""
 PROFILE=""
 REGION=""
+CUSTOM_AMI_ID=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -23,6 +24,7 @@ while [[ $# -gt 0 ]]; do
     --username) USERNAME="$2"; shift 2;;
     --profile) PROFILE="$2"; shift 2;;
     --region) REGION="$2"; shift 2;;
+    --ami-id) CUSTOM_AMI_ID="$2"; shift 2;;
     *) echo "Unknown arg: $1"; exit 1;;
   esac
 done
@@ -32,12 +34,18 @@ if [[ -z "$PROFILE" || -z "$REGION" || -z "$USERNAME" || -z "$PROJECT" ]]; then
   exit 2
 fi
 
-if [[ "$ARCH" == "arm64" ]]; then
-  AMI_PARAM="/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64"
+if [[ -n "$CUSTOM_AMI_ID" ]]; then
+  AMI_ID="$CUSTOM_AMI_ID"
+  echo "Using custom AMI: $AMI_ID"
 else
-  AMI_PARAM="/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+  if [[ "$ARCH" == "arm64" ]]; then
+    AMI_PARAM="/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64"
+  else
+    AMI_PARAM="/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+  fi
+  AMI_ID=$(aws ssm get-parameters --names "$AMI_PARAM" --query 'Parameters[0].Value' --output text --profile "$PROFILE" --region "$REGION")
+  echo "Using latest AL2023 AMI: $AMI_ID"
 fi
-AMI_ID=$(aws ssm get-parameters --names "$AMI_PARAM" --query 'Parameters[0].Value' --output text --profile "$PROFILE" --region "$REGION")
 
 if [[ -z "$SG_ID" ]]; then
   VPC_ID=$(aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query 'Vpcs[0].VpcId' --output text --profile "$PROFILE" --region "$REGION")

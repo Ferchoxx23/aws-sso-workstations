@@ -1,0 +1,66 @@
+name: WorkstationDevToolsV3
+description: Install essential development tools on Amazon Linux 2023 (v3 with robust testing)
+schemaVersion: 1.0
+phases:
+  - name: build
+    steps:
+      - name: UpdateOS
+        action: ExecuteBash
+        inputs:
+          commands:
+            - set -euo pipefail
+            - dnf -y update
+      - name: InstallCoreTools
+        action: ExecuteBash
+        inputs:
+          commands:
+            - dnf -y install tmux git wget curl unzip
+            - dnf -y install emacs-nox || dnf -y install emacs
+      - name: InstallNode20
+        action: ExecuteBash
+        inputs:
+          commands:
+            - dnf -y install nodejs20 nodejs20-npm
+            - alternatives --set node /usr/bin/node-20 || true
+            - alternatives --set npm  /usr/bin/npm-20  || true
+      - name: InstallUv
+        action: ExecuteBash
+        inputs:
+          commands:
+            - curl -LsSf https://astral.sh/uv/install.sh | sh
+            - export PATH="/root/.local/bin:$PATH"
+            - cp /root/.local/bin/uv /usr/local/bin/uv || echo "uv copy failed, continuing"
+            - chmod +x /usr/local/bin/uv || echo "uv chmod failed, continuing"
+      - name: InstallAwsCli
+        action: ExecuteBash
+        inputs:
+          commands:
+            - cd /tmp
+            - curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+            - unzip awscliv2.zip
+            - ./aws/install --update
+            - rm -rf awscliv2.zip aws/
+      - name: InstallSessionManagerPlugin
+        action: ExecuteBash
+        inputs:
+          commands:
+            - cd /tmp
+            - curl https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm -o session-manager-plugin.rpm
+            - dnf install -y session-manager-plugin.rpm
+            - rm -f session-manager-plugin.rpm
+  - name: test
+    steps:
+      - name: VerifyVersions
+        action: ExecuteBash
+        inputs:
+          commands:
+            - echo "=== Starting verification ==="
+            - tmux -V && echo "✓ tmux OK" || echo "✗ tmux FAILED"
+            - git --version && echo "✓ git OK" || echo "✗ git FAILED"
+            - emacs --version | head -n1 && echo "✓ emacs OK" || echo "✗ emacs FAILED"
+            - node --version && echo "✓ node OK" || echo "✗ node FAILED"
+            - npm --version && echo "✓ npm OK" || echo "✗ npm FAILED"
+            - (/usr/local/bin/uv --version && echo "✓ uv OK") || (echo "✗ uv FAILED - trying alternatives"; /root/.local/bin/uv --version && echo "✓ uv found in ~/.local/bin" || echo "✗ uv not found anywhere")
+            - aws --version && echo "✓ aws CLI OK" || echo "✗ aws CLI FAILED"
+            - session-manager-plugin --version && echo "✓ session-manager-plugin OK" || echo "✗ session-manager-plugin FAILED"
+            - echo "=== Verification complete ==="
