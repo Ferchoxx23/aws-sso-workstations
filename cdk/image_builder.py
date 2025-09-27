@@ -158,104 +158,16 @@ class ImageBuilderStack(Stack):
         CfnOutput(self, "RecipeArn", value=recipe.attr_arn, description="Image Recipe ARN")
 
     def _get_component_data(self) -> str:
-        """Load component data from YAML file or provide inline"""
-        component_yaml = {
-            "name": "WorkstationDevTools",
-            "description": "Install essential development tools on Amazon Linux 2023",
-            "schemaVersion": 1.0,
-            "phases": [
-                {
-                    "name": "build",
-                    "steps": [
-                        {
-                            "name": "UpdateOS",
-                            "action": "ExecuteBash",
-                            "inputs": {"commands": ["set -euo pipefail", "dnf -y update"]},
-                        },
-                        {
-                            "name": "InstallCoreTools",
-                            "action": "ExecuteBash",
-                            "inputs": {
-                                "commands": [
-                                    "dnf -y install tmux git wget curl unzip",
-                                    "dnf -y install emacs-nox || dnf -y install emacs",
-                                ]
-                            },
-                        },
-                        {
-                            "name": "InstallNode20",
-                            "action": "ExecuteBash",
-                            "inputs": {
-                                "commands": [
-                                    "dnf -y install nodejs20 nodejs20-npm",
-                                    "alternatives --set node /usr/bin/node-20 || true",
-                                    "alternatives --set npm  /usr/bin/npm-20  || true",
-                                ]
-                            },
-                        },
-                        {
-                            "name": "InstallUv",
-                            "action": "ExecuteBash",
-                            "inputs": {
-                                "commands": [
-                                    "curl -LsSf https://astral.sh/uv/install.sh | sh",
-                                    "install -m 0755 -D /root/.local/bin/uv /usr/local/bin/uv",
-                                ]
-                            },
-                        },
-                        {
-                            "name": "InstallAwsCli",
-                            "action": "ExecuteBash",
-                            "inputs": {
-                                "commands": [
-                                    "AWS_CLI_URL=https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip",
-                                    "curl $AWS_CLI_URL -o awscliv2.zip",
-                                    "unzip awscliv2.zip",
-                                    "./aws/install --update",
-                                    "rm -rf awscliv2.zip aws/",
-                                ]
-                            },
-                        },
-                        {
-                            "name": "InstallSessionManagerPlugin",
-                            "action": "ExecuteBash",
-                            "inputs": {
-                                "commands": [
-                                    "SSM_URL=https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm",
-                                    "curl $SSM_URL -o session-manager-plugin.rpm",
-                                    "dnf install -y session-manager-plugin.rpm",
-                                    "rm -f session-manager-plugin.rpm",
-                                ]
-                            },
-                        },
-                    ],
-                },
-                {
-                    "name": "test",
-                    "steps": [
-                        {
-                            "name": "VerifyVersions",
-                            "action": "ExecuteBash",
-                            "inputs": {
-                                "commands": [
-                                    "set -e",
-                                    "tmux -V",
-                                    "git --version",
-                                    "emacs --version | head -n1",
-                                    "node --version",
-                                    "npm --version",
-                                    "uv --version",
-                                    "aws --version",
-                                    "session-manager-plugin --version",
-                                ]
-                            },
-                        }
-                    ],
-                },
-            ],
-        }
+        """Load component data from existing YAML file"""
+        import pathlib
 
-        # Convert to YAML string format expected by Image Builder
-        import yaml
+        # Get the component file path relative to this CDK directory
+        cdk_dir = pathlib.Path(__file__).parent
+        component_file = (
+            cdk_dir.parent / "infra" / "image-builder" / "components" / "workstation-dev-tools.yml"
+        )
 
-        return yaml.dump(component_yaml, default_flow_style=False)
+        if not component_file.exists():
+            raise FileNotFoundError(f"Component file not found: {component_file}")
+
+        return component_file.read_text()
