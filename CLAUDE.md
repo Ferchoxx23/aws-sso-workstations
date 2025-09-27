@@ -35,17 +35,18 @@ uv sync
 uv run cdk bootstrap --profile sub-dev-admin
 ```
 
-### Daily Workstation Management
+### Daily Workstation Management (Regular Users)
 ```bash
 # Login with developer profile
 aws sso login --profile sub-dev-dev
 
-# Create workstation (specify subnet for better instance type support)
+# Create workstation with latest custom AMI
 ./infra/scripts/create-workstation.sh \
   --profile sub-dev-dev --region us-east-1 \
   --username <username> --project <project> \
   --instance-type t3.small --arch x86_64 --volume-gb 50 \
-  --subnet-id subnet-042e2fa6a0489e19b
+  --subnet-id subnet-042e2fa6a0489e19b \
+  --ami-id ami-0ed9d0f617d8dd084
 
 # Start session
 aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-east-1
@@ -54,8 +55,11 @@ aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-e
 ./infra/scripts/stop-workstation.sh sub-dev-dev us-east-1 <username> [project]
 ```
 
-### Custom AMI Creation
+### Custom AMI Creation (Admins Only)
 ```bash
+# Login with admin profile for Image Builder operations
+aws sso login --profile sub-dev-admin
+
 # Create Image Builder pipeline for custom AMIs
 ./infra/image-builder/scripts/create-ami.sh \
   --subnet-id subnet-042e2fa6a0489e19b \
@@ -117,7 +121,8 @@ aws-config-git/      # AWS CLI configuration management
 - **ABAC Policy**: Users can only manage instances where `Owner` tag matches their `${aws:PrincipalTag/username}`
 - **AMI Selection**: Automatic latest Amazon Linux 2023 AMI selection via SSM Parameter Store
 - **Default Resources**: Uses default VPC/subnets but creates dedicated security group
-- **Dual Profiles**: Admin profile (`sub-dev-admin`) for bootstrapping, developer profile (`sub-dev-dev`) for daily use
+- **Two-Tier Access**: Admin profile (`sub-dev-admin`) for Image Builder and infrastructure, developer profile (`sub-dev-dev`) for daily workstation use
+- **ABAC Security**: Developers can only access workstations tagged with their username via `sub-dev-dev` profile
 - **Permission Boundaries**: Account has permission boundaries that may prevent CDK deployments; bootstrap script provides alternative
 
 ## Development Guidelines
