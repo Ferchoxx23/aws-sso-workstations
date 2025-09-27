@@ -54,6 +54,24 @@ aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-e
 ./infra/scripts/stop-workstation.sh sub-dev-dev us-east-1 <username> [project]
 ```
 
+### Custom AMI Creation
+```bash
+# Create Image Builder pipeline for custom AMIs
+./infra/image-builder/scripts/create-ami.sh \
+  --subnet-id subnet-042e2fa6a0489e19b \
+  --security-group sg-0123456789abcdef0 \
+  --profile sub-dev-dev --start-build
+
+# Monitor AMI build progress
+aws imagebuilder list-image-builds --profile sub-dev-dev --region us-east-1 \
+  --query 'imageBuildVersionList[0].{Status:state.status,Reason:state.reason}'
+
+# List created AMIs
+aws ec2 describe-images --owners self --profile sub-dev-dev --region us-east-1 \
+  --filters 'Name=name,Values=AL2023-Workstation-*' \
+  --query 'Images[].{Name:Name,ImageId:ImageId,CreationDate:CreationDate}'
+```
+
 ### S3 Workspace Sync
 ```bash
 # Upload workspace to S3 (from EC2)
@@ -68,7 +86,10 @@ aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-e
 # Deploy baseline infrastructure (optional - permission boundaries may prevent deployment)
 cd cdk/
 uv sync
-uv run cdk deploy --profile sub-dev-admin --require-approval never
+uv run cdk deploy WorkstationBaseline --profile sub-dev-admin --require-approval never
+
+# Deploy Image Builder infrastructure (alternative to script-based setup)
+uv run cdk deploy ImageBuilder --profile sub-dev-admin --require-approval never
 
 # Note: The system works without CDK deployment - IAM resources are created by bootstrap script
 ```
@@ -79,6 +100,9 @@ uv run cdk deploy --profile sub-dev-admin --require-approval never
 infra/
   scripts/           # Shell scripts for workstation lifecycle
   policies/          # IAM permission set policies for ABAC
+  image-builder/     # EC2 Image Builder automation
+    components/      # AWSTOE component definitions
+    scripts/         # AMI build automation scripts
 cdk/                 # AWS CDK Python infrastructure code
 aws-config-git/      # AWS CLI configuration management
 ```

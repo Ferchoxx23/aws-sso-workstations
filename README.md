@@ -13,7 +13,7 @@ The Submissions team needs a standard AWS EC2 image and set of local tools to su
 - **Cost-aware**: Easy stop/terminate & (later) idle-stop automation.
 - **Simple sync**: Trivial file sync between an EC2 directory and `s3://<bucket>/<prefix>/<username>/`.
 - **Infrastructure as code**: All infrastructure defined in code (AWS CDK Python).
-- **Easy machine images**: Simple construction of new machine images and VM definitions.
+- **Custom AMIs**: Automated EC2 Image Builder pipeline for standardized workstation images.
 - **Local sync**: User files stored in EC2 directory synchronized with corresponding MacBook directory.
 
 ## Architecture
@@ -128,6 +128,60 @@ aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-e
 ./infra/scripts/stop-workstation.sh sub-dev-dev us-east-1 <your-username> [project]
 ```
 
+## Custom AMI Creation
+
+### Build Custom Workstation AMIs
+Create standardized AMIs with pre-installed development tools using EC2 Image Builder:
+
+```bash
+# Create Image Builder pipeline and start first build
+./infra/image-builder/scripts/create-ami.sh \
+  --subnet-id subnet-042e2fa6a0489e19b \
+  --security-group sg-0123456789abcdef0 \
+  --profile sub-dev-dev \
+  --start-build
+
+# Monitor build progress (builds take ~20-30 minutes)
+aws imagebuilder list-image-builds --profile sub-dev-dev --region us-east-1 \
+  --query 'imageBuildVersionList[0].{Status:state.status,Reason:state.reason,Progress:state.progress}'
+
+# List completed AMIs
+aws ec2 describe-images --owners self --profile sub-dev-dev --region us-east-1 \
+  --filters 'Name=name,Values=AL2023-Workstation-*' \
+  --query 'Images[].{Name:Name,ImageId:ImageId,CreationDate:CreationDate}' \
+  --output table
+```
+
+### Using Custom AMIs
+Once built, update your workstation creation to use the custom AMI:
+
+```bash
+# Find your latest custom AMI
+CUSTOM_AMI=$(aws ec2 describe-images --owners self --profile sub-dev-dev --region us-east-1 \
+  --filters 'Name=name,Values=AL2023-Workstation-*' \
+  --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
+
+# Create workstation with custom AMI
+./infra/scripts/create-workstation.sh \
+  --profile sub-dev-dev \
+  --region us-east-1 \
+  --username <your-username> \
+  --project <project-name> \
+  --instance-type t3.small \
+  --arch x86_64 \
+  --volume-gb 50 \
+  --subnet-id subnet-042e2fa6a0489e19b \
+  --ami-id $CUSTOM_AMI
+```
+
+### What's Included in Custom AMIs
+The Image Builder pipeline creates Amazon Linux 2023 AMIs with:
+- **Development tools**: tmux, git, emacs-nox, wget, curl, unzip
+- **Node.js 20**: Latest LTS with npm
+- **Python tooling**: uv (fast Python package manager)
+- **AWS tools**: AWS CLI v2, Session Manager plugin
+- **Automatic updates**: Weekly builds every Sunday at 09:00 UTC
+
 ## Troubleshooting
 
 ### Common Issues
@@ -217,11 +271,18 @@ infra/
     start-session.sh
     stop-workstation.sh
     s3-sync.sh
+  image-builder/
+    components/
+      workstation-dev-tools.yml
+    scripts/
+      create-ami.sh
   policies/
     permission-set-abac.json
     permission-set-abac-explicit-deny.json
 cdk/
   app.py
+  workstation_baseline.py
+  image_builder.py
   pyproject.toml
 ```
 

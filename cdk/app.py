@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-from aws_cdk import App, Environment, Stack
-from constructs import Construct
+from aws_cdk import App, Environment
 
-
-class WorkstationBaseline(Stack):
-    def __init__(self, scope: Construct, cid: str, **kwargs):
-        super().__init__(scope, cid, **kwargs)
-
-        # Use existing resources created by bootstrap script instead of CDK
-        # All infrastructure is created via ./infra/scripts/bootstrap-iam-for-ssm.sh
-        pass
-
+from image_builder import ImageBuilderStack
+from workstation_baseline import WorkstationBaseline
 
 app = App()
+
+# Baseline workstation infrastructure
 WorkstationBaseline(
     app, "WorkstationBaseline", env=Environment(account="058264484340", region="us-east-1")
 )
+
+# Image Builder infrastructure for custom AMIs
+ImageBuilderStack(app, "ImageBuilder", env=Environment(account="058264484340", region="us-east-1"))
+
 app.synth()
