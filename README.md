@@ -163,7 +163,7 @@ CUSTOM_AMI=$(aws ec2 describe-images --owners self --profile sub-dev-admin --reg
 
 # Create workstation with custom AMI
 ./infra/scripts/create-workstation.sh \
-  --profile sub-dev-dev \
+  --profile sub-dev-admin \
   --region us-east-1 \
   --username <your-username> \
   --project <project-name> \

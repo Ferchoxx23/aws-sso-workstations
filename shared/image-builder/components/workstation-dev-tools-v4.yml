@@ -1,5 +1,5 @@
-name: WorkstationDevTools
-description: Install essential development tools on Amazon Linux 2023 for workstation AMI
+name: WorkstationDevToolsV4
+description: Install essential development tools on Amazon Linux 2023 (v4 with separated git/tmux)
 schemaVersion: 1.0
 phases:
   - name: build

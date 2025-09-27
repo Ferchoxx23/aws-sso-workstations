@@ -59,15 +59,16 @@ aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-e
 # Create Image Builder pipeline for custom AMIs
 ./infra/image-builder/scripts/create-ami.sh \
   --subnet-id subnet-042e2fa6a0489e19b \
-  --security-group sg-0123456789abcdef0 \
-  --profile sub-dev-dev --start-build
+  --security-group sg-060f1c9f0d0b54238 \
+  --profile sub-dev-admin --start-build
 
 # Monitor AMI build progress
-aws imagebuilder list-image-builds --profile sub-dev-dev --region us-east-1 \
-  --query 'imageBuildVersionList[0].{Status:state.status,Reason:state.reason}'
+aws imagebuilder list-image-pipeline-images --profile sub-dev-admin --region us-east-1 \
+  --image-pipeline-arn "arn:aws:imagebuilder:us-east-1:058264484340:image-pipeline/workstation-pipeline-v5" \
+  --query 'imageSummaryList[].{Name:name,Version:version,Status:state.status}'
 
 # List created AMIs
-aws ec2 describe-images --owners self --profile sub-dev-dev --region us-east-1 \
+aws ec2 describe-images --owners self --profile sub-dev-admin --region us-east-1 \
   --filters 'Name=name,Values=AL2023-Workstation-*' \
   --query 'Images[].{Name:Name,ImageId:ImageId,CreationDate:CreationDate}'
 ```
