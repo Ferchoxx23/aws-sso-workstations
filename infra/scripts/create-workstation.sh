@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Source common utility functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common-utils.sh"
 INSTANCE_TYPE="t3.small"
 ARCH="x86_64"
 VOLUME_GB="50"
@@ -29,9 +33,23 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$PROFILE" || -z "$REGION" || -z "$USERNAME" || -z "$PROJECT" ]]; then
-  echo "Usage: $0 --profile <sso-profile> --region <region> --username <owner> --project <project> [options]"
+if [[ -z "$PROFILE" || -z "$REGION" || -z "$PROJECT" ]]; then
+  echo "Usage: $0 --profile <sso-profile> --region <region> --project <project> [--username <owner>] [options]"
+  echo "Note: If --username is not provided, it will be auto-detected from your current AWS SSO session"
   exit 2
+fi
+
+# Auto-detect username if not provided
+if [[ -z "$USERNAME" ]]; then
+  echo "Auto-detecting username from current AWS SSO session..."
+  USERNAME=$(get_current_username "$PROFILE" "$REGION")
+  echo "Detected username: $USERNAME"
+else
+  # Validate provided username matches current AWS identity
+  if ! validate_username "$USERNAME" "$PROFILE" "$REGION"; then
+    echo "Error: Username mismatch detected. Use auto-detection or fix the username." >&2
+    exit 2
+  fi
 fi
 
 if [[ -n "$CUSTOM_AMI_ID" ]]; then

@@ -110,13 +110,14 @@ aws sso login --profile sub-dev-dev
 ./infra/scripts/create-workstation.sh \
   --profile sub-dev-dev \
   --region us-east-1 \
-  --username <your-username> \
   --project <project-name> \
   --instance-type t3.small \
   --arch x86_64 \
   --volume-gb 50 \
   --subnet-id subnet-042e2fa6a0489e19b  # Use us-east-1a for better instance type support
 ```
+
+**Note**: The `--username` parameter is optional and will be auto-detected from your current AWS SSO session if not provided.
 
 ### 3. Connect to Your Workstation
 ```bash
@@ -125,8 +126,10 @@ aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-e
 
 ### 4. Stop When Done
 ```bash
-./infra/scripts/stop-workstation.sh sub-dev-dev us-east-1 <your-username> [project]
+./infra/scripts/stop-workstation.sh sub-dev-dev us-east-1 [username] [project]
 ```
+
+**Note**: The `username` parameter is optional and will be auto-detected from your current AWS SSO session if not provided.
 
 ## Custom AMI Creation
 
@@ -165,7 +168,6 @@ CUSTOM_AMI=$(aws ec2 describe-images --owners self --profile sub-dev-admin --reg
 ./infra/scripts/create-workstation.sh \
   --profile sub-dev-admin \
   --region us-east-1 \
-  --username <your-username> \
   --project <project-name> \
   --instance-type t3.small \
   --arch x86_64 \
@@ -231,13 +233,16 @@ We suggest a dedicated directory on EC2, e.g., `/home/ec2-user/workspace`, synce
 
 - One-way **upload** from EC2 → S3 during/after work:
   ```bash
-  aws s3 sync /home/ec2-user/workspace s3://<bucket>/<prefix>/<username>/ --delete
+  ./infra/scripts/s3-sync.sh push <bucket> <prefix> [username] [path] [profile] [region]
   ```
 - One-way **download** from S3 → EC2 at start:
   ```bash
-  aws s3 sync s3://<bucket>/<prefix>/<username>/ /home/ec2-user/workspace
+  ./infra/scripts/s3-sync.sh pull <bucket> <prefix> [username] [path] [profile] [region]
   ```
-- For convenience, use `infra/scripts/s3-sync.sh` (see below). Avoid FUSE mounts (e.g., s3fs) for POSIX-heavy or latency-sensitive workloads; S3 is object storage, not a POSIX filesystem.
+- For convenience, use `infra/scripts/s3-sync.sh` as shown above. The `username`, `path`, `profile`, and `region` parameters are optional with sensible defaults.
+- Avoid FUSE mounts (e.g., s3fs) for POSIX-heavy or latency-sensitive workloads; S3 is object storage, not a POSIX filesystem.
+
+**Note**: The username will be auto-detected from your current AWS SSO session if not provided.
 
 ### Bucket policy (optional, ABAC with username)
 Example that lets signed-in principals with a `username` principal tag read/write **only** their own prefix. Replace `<bucket>` and `<prefix>`.

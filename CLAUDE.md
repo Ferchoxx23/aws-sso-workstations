@@ -43,16 +43,20 @@ aws sso login --profile sub-dev-dev
 # Create workstation with latest custom AMI
 ./infra/scripts/create-workstation.sh \
   --profile sub-dev-dev --region us-east-1 \
-  --username <username> --project <project> \
+  --project <project> \
   --instance-type t3.small --arch x86_64 --volume-gb 50 \
   --subnet-id subnet-042e2fa6a0489e19b \
   --ami-id ami-0ed9d0f617d8dd084
+
+# Note: --username is optional and auto-detected from SSO session
 
 # Start session
 aws ssm start-session --target <instance-id> --profile sub-dev-dev --region us-east-1
 
 # Stop workstation
-./infra/scripts/stop-workstation.sh sub-dev-dev us-east-1 <username> [project]
+./infra/scripts/stop-workstation.sh sub-dev-dev us-east-1 [username] [project]
+
+# Note: username is optional and auto-detected from SSO session
 ```
 
 ### Custom AMI Creation (Admins Only)
@@ -80,10 +84,12 @@ aws ec2 describe-images --owners self --profile sub-dev-admin --region us-east-1
 ### S3 Workspace Sync
 ```bash
 # Upload workspace to S3 (from EC2)
-./infra/scripts/s3-sync.sh push <bucket> <prefix> <username> [local-path]
+./infra/scripts/s3-sync.sh push <bucket> <prefix> [username] [local-path] [profile] [region]
 
 # Download workspace from S3 (to EC2)
-./infra/scripts/s3-sync.sh pull <bucket> <prefix> <username> [local-path]
+./infra/scripts/s3-sync.sh pull <bucket> <prefix> [username] [local-path] [profile] [region]
+
+# Note: username, profile, and region are optional with sensible defaults
 ```
 
 ### CDK Infrastructure
