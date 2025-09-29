@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an AWS SSO-based EC2 workstation provisioning system that allows team members to securely create and manage personal EC2 instances accessed via AWS Systems Manager Session Manager (no SSH required).
+**aws-sso-workstations** is an AWS SSO-based EC2 workstation provisioning system that allows team members to securely create and manage personal EC2 instances accessed via AWS Systems Manager Session Manager (no SSH required).
 
 ## Core Architecture
 

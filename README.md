@@ -1,9 +1,9 @@
 
-# Submissions AWS Shell
+# AWS SSO Workstations
 
-A standardized, secure way for each team member to start a personal **EC2 workstation** from their Mac terminal using **AWS SSO** and connect via **AWS Systems Manager Session Manager** (no inbound SSH).
+A standardized, secure way to provision and manage personal **EC2 workstations** using **AWS SSO** and **AWS Systems Manager Session Manager** (no inbound SSH required).
 
-The Submissions team needs a standard AWS EC2 image and set of local tools to support activities that cannot be done on either their local MacBooks and should not or cannot be done on any of the on-prem clusters. Managing direct cost is a high priority that must be balanced against maintaining an efficient and pleasant work environment.
+This system provides automated EC2 workstation provisioning with modern AWS security practices including SSO authentication, attribute-based access control (ABAC), and Session Manager connectivity. Perfect for teams that need secure, cost-effective cloud workstations with zero network exposure.
 
 ## Goals
 - **SSO-first**: Users authenticate with AWS IAM Identity Center (SSO) and receive short-lived credentials.
@@ -275,6 +275,7 @@ shared/
       workstation-dev-tools.yml
 infra/
   scripts/
+    common-utils.sh             # Shared utility functions
     bootstrap-iam-for-ssm.sh
     create-workstation.sh
     start-session.sh
@@ -294,10 +295,11 @@ cdk/
 ```
 
 ## Implementation Details
-- Instances are tagged `Owner=<username>`, `Project=<project>`, `Name=<project>-<username>`.
-- ABAC permission set allows run/start/stop/terminate/SSM **only** when `Owner` matches `${aws:PrincipalTag/username}`.
-- IMDSv2 is **required** at launch.
-- Security Group has **no inbound** rules (all outbound permitted).
+- **Username auto-detection**: Scripts automatically extract username from SSO session to ensure ABAC compliance
+- **Instance tagging**: `Owner=<sso-username>`, `Project=<project>`, `Name=<project>-<sso-username>`
+- **ABAC security**: Permission set allows run/start/stop/terminate/SSM **only** when `Owner` matches `${aws:PrincipalTag/username}`
+- **IMDSv2 required**: All instances launched with metadata service v2 enforced
+- **Zero inbound access**: Security groups have no inbound rules, all access via Session Manager
 
 ## Future work (optional)
 - **Idle stop**: EventBridge rule + Lambda/SSM Automation to detect idle (no SSM sessions, CPU/Network low, no batch jobs) and stop. Note: A tmux session containing processes like bash, less, and vim should not be sufficient for the EC2 instance to be considered non-idle.
